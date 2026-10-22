@@ -1,5 +1,6 @@
 # test2
 hello world
+
 ## Сортировка пузырьком
 
 Файл [`bubble_sort.py`](bubble_sort.py) содержит реализацию сортировки пузырьком (bubble sort).
