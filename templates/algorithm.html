@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ algorithm.full_name }} — Алгоритмы сортировки{% endblock %}
+
+{% block content %}
+{% set keys = algorithms|list %}
+{% set pos = keys.index(key) %}
+{% set prev_key = keys[pos - 1] if pos > 0 else none %}
+{% set next_key = keys[pos + 1] if pos + 1 < keys|length else none %}
+
+<nav class="breadcrumbs" aria-label="Навигационная цепочка">
+  <ol>
+    <li><a href="{{ url_for('index') }}">Главная</a></li>
+    <li><span aria-current="page">{{ algorithm.full_name }}</span></li>
+  </ol>
+</nav>
+
+<section class="page-header">
+  <p class="eyebrow">Алгоритм сортировки</p>
+  <h1>{{ algorithm.full_name }}</h1>
+  <p class="lead">{{ algorithm.description }}</p>
+</section>
+
+<section class="card" aria-labelledby="specs-title">
+  <h2 id="specs-title">Характеристики</h2>
+  <dl class="specs">
+    <div class="spec">
+      <dt>Лучший случай</dt>
+      <dd class="complexity">{{ algorithm.best }}</dd>
+    </div>
+    <div class="spec">
+      <dt>Средний случай</dt>
+      <dd class="complexity">{{ algorithm.average }}</dd>
+    </div>
+    <div class="spec">
+      <dt>Худший случай</dt>
+      <dd class="complexity">{{ algorithm.worst }}</dd>
+    </div>
+    <div class="spec">
+      <dt>Дополнительная память</dt>
+      <dd class="complexity">{{ algorithm.memory }}</dd>
+    </div>
+    <div class="spec">
+      <dt>Устойчивость</dt>
+      <dd>{% if algorithm.stable %}Устойчивая{% else %}Неустойчивая{% endif %}</dd>
+    </div>
+    <div class="spec">
+      <dt>Типы данных</dt>
+      <dd>{% if algorithm.int_only %}Только целые числа{% else %}Целые и дробные числа{% endif %}</dd>
+    </div>
+    <div class="spec">
+      <dt>Исходный файл</dt>
+      <dd><code>{{ algorithm.file }}</code></dd>
+    </div>
+  </dl>
+
+  {% if algorithm.int_only %}
+  <div class="alert alert-warn" role="note">
+    <strong>Только целые числа.</strong>
+    <span>Если в данных есть дробные значения, этот алгоритм не запустится, а в режиме «Сравнить все» будет пропущен.</span>
+  </div>
+  {% endif %}
+
+  <p class="hint">n — количество элементов, k — диапазон значений, d — число разрядов, b — основание системы счисления. Устойчивая сортировка сохраняет исходный порядок равных элементов.</p>
+</section>
+
+<section class="card" aria-labelledby="try-title">
+  <h2 id="try-title">Попробовать</h2>
+  <form method="post" action="{{ url_for('index') }}#result">
+    <input type="hidden" name="algorithm" value="{{ key }}">
+    <div class="field">
+      <label for="try-numbers">Числа</label>
+      <textarea id="try-numbers" name="numbers" rows="3" required spellcheck="false"
+                aria-describedby="try-hint">38, 27, 43, 3, 9, 82, 10, -5, 0, 27</textarea>
+      <p id="try-hint" class="hint">Числа через пробел, запятую или точку с запятой. Дробную часть отделяйте точкой (2.5). Не более {{ max_items }} чисел. Результат откроется на главной странице.</p>
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">Отсортировать</button>
+      <a class="btn" href="{{ url_for('index') }}">← На главную</a>
+    </div>
+  </form>
+</section>
+
+<section class="card" aria-labelledby="source-title">
+  <div class="section-head">
+    <h2 id="source-title">Исходный код</h2>
+    <code class="filename">{{ algorithm.file }}</code>
+  </div>
+  <pre class="code" role="region" aria-label="Исходный код {{ algorithm.file }}" tabindex="0"><code class="language-python">{{ source }}</code></pre>
+</section>
+
+<nav class="pager" aria-label="Другие алгоритмы">
+  {% if prev_key %}
+  <a class="pager-link" href="{{ url_for('algorithm_detail', key=prev_key) }}" rel="prev">
+    <span class="pager-label">← Предыдущий</span>
+    <span>{{ algorithms[prev_key].name }}</span>
+  </a>
+  {% endif %}
+  {% if next_key %}
+  <a class="pager-link pager-next" href="{{ url_for('algorithm_detail', key=next_key) }}" rel="next">
+    <span class="pager-label">Следующий →</span>
+    <span>{{ algorithms[next_key].name }}</span>
+  </a>
+  {% endif %}
+</nav>
+{% endblock %}

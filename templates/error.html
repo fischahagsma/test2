@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — Алгоритмы сортировки{% endblock %}
+
+{% block content %}
+<section class="card empty-state">
+  <p class="eyebrow">Ошибка {{ code }}</p>
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <p><a class="btn btn-primary" href="{{ url_for('index') }}">На главную</a></p>
+</section>
+{% endblock %}

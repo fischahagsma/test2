@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}{% if error %}Ошибка — {% endif %}Главная — Алгоритмы сортировки{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h1>Алгоритмы сортировки</h1>
+  <p class="lead">Введите числа, выберите алгоритм и посмотрите отсортированный результат и время работы.
+    Или выберите «Сравнить все», чтобы узнать, какой алгоритм справится быстрее.</p>
+</section>
+
+<section class="card" aria-labelledby="sort-form-title">
+  <h2 id="sort-form-title">Отсортировать числа</h2>
+
+  {% if error %}
+  <div class="alert alert-error" role="alert" id="numbers-error">
+    <strong>Ошибка:</strong>
+    <span>{{ error }}</span>
+  </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('index') }}#result" class="sort-form">
+    <div class="field">
+      <label for="numbers">Числа</label>
+      <textarea id="numbers" name="numbers" rows="5" required spellcheck="false"
+                placeholder="Например: 38, 27, 43, 3, 9, 82, 10, -5, 2.5"
+                aria-describedby="{% if error %}numbers-error {% endif %}numbers-hint"{% if error %} aria-invalid="true" autofocus{% endif %}>{{ text }}</textarea>
+      <p id="numbers-hint" class="hint">
+        Разделители: пробел, запятая, точка с запятой или перевод строки.
+        Дробную часть отделяйте точкой (2.5). Не более {{ max_items }} чисел.
+      </p>
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label for="algorithm">Алгоритм</label>
+        <select id="algorithm" name="algorithm">
+          <optgroup label="Один алгоритм">
+            {% for k, alg in algorithms.items() %}
+            <option value="{{ k }}"{% if selected == k %} selected{% endif %}>{{ alg.name }}{% if alg.int_only %} (только целые){% endif %}</option>
+            {% endfor %}
+          </optgroup>
+          <optgroup label="Сравнение">
+            <option value="all"{% if selected == 'all' %} selected{% endif %}>Сравнить все</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Сортировать</button>
+        <button type="button" class="btn" id="random-fill" data-target="numbers" data-count="100" hidden>Случайные данные</button>
+      </div>
+    </div>
+  </form>
+</section>
+
+{% if result is defined %}
+<section class="card" id="result" aria-labelledby="result-title">
+  {% if timings is defined %}
+  <h2 id="result-title">Результат сравнения</h2>
+  {% if timings %}
+  {% set fastest = timings[0] %}
+  {% set slowest_ms = timings[-1].ms %}
+  <ul class="stats">
+    <li><span class="stat-label">Быстрее всех</span>
+      <a href="{{ url_for('algorithm_detail', key=fastest.key) }}">{{ algorithms[fastest.key].full_name }}</a></li>
+    <li><span class="stat-label">Время</span> <strong>{{ '%.3f'|format(fastest.ms) }} мс</strong></li>
+    <li><span class="stat-label">Элементов</span> <strong>{{ result|length }}</strong></li>
+  </ul>
+
+  <div class="table-wrap">
+    <table class="timings">
+      <caption class="sr-only">Время работы алгоритмов, от самого быстрого к самому медленному</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="num">Место</th>
+          <th scope="col">Алгоритм</th>
+          <th scope="col" class="num">Время, мс</th>
+          <th scope="col" class="num">От лучшего</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in timings %}
+        {% set pct = (t.ms / slowest_ms * 100) if slowest_ms > 0 else 100 %}
+        <tr>
+          <td class="num">{{ loop.index }}</td>
+          <td><a href="{{ url_for('algorithm_detail', key=t.key) }}">{{ t.name }}</a></td>
+          <td class="num">
+            {{ '%.3f'|format(t.ms) }}
+            <span class="timing-bar" aria-hidden="true"><span style="width: {{ '%.1f'|format(pct) }}%"></span></span>
+          </td>
+          <td class="num">{% if fastest.ms > 0 %}×{{ '%.2f'|format(t.ms / fastest.ms) }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if skipped %}
+  <p class="hint">Пропущены, потому что не подходят для этих данных:</p>
+  <ul class="hint skipped">
+    {% for s in skipped %}
+    <li><a href="{{ url_for('algorithm_detail', key=s.key) }}">{{ s.name }}</a> — {{ s.reason }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% endif %}
+  {% else %}
+  <h2 id="result-title">Результат</h2>
+  {% if elapsed_ms is defined %}
+  <ul class="stats">
+    <li><span class="stat-label">Алгоритм</span>
+      <a href="{{ url_for('algorithm_detail', key=selected) }}">{{ algorithms[selected].full_name }}</a></li>
+    <li><span class="stat-label">Время</span> <strong>{{ '%.3f'|format(elapsed_ms) }} мс</strong></li>
+    <li><span class="stat-label">Элементов</span> <strong>{{ result|length }}</strong></li>
+  </ul>
+  {% endif %}
+  {% endif %}
+
+  <h3>Отсортированный список</h3>
+  <div class="output" role="region" aria-label="Отсортированный список" tabindex="0">{{ result|join(', ') }}</div>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="compare-title">
+  <h2 id="compare-title">Сравнение алгоритмов</h2>
+  <div class="table-wrap">
+    <table class="compare">
+      <caption class="sr-only">Сложность, память и свойства алгоритмов сортировки</caption>
+      <thead>
+        <tr>
+          <th scope="col">Алгоритм</th>
+          <th scope="col">Лучший</th>
+          <th scope="col">Средний</th>
+          <th scope="col">Худший</th>
+          <th scope="col">Память</th>
+          <th scope="col">Устойчивая</th>
+          <th scope="col">Только целые</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for k, alg in algorithms.items() %}
+        <tr>
+          <th scope="row"><a href="{{ url_for('algorithm_detail', key=k) }}">{{ alg.name }}</a></th>
+          <td class="complexity">{{ alg.best }}</td>
+          <td class="complexity">{{ alg.average }}</td>
+          <td class="complexity">{{ alg.worst }}</td>
+          <td class="complexity">{{ alg.memory }}</td>
+          <td>{% if alg.stable %}<span class="badge badge-yes">Да</span>{% else %}<span class="badge badge-no">Нет</span>{% endif %}</td>
+          <td>{% if alg.int_only %}<span class="badge badge-warn">Да</span>{% else %}<span class="badge badge-no">Нет</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="hint">
+    n — количество элементов, k — диапазон значений, d — число разрядов, b — основание системы счисления.
+    Устойчивая сортировка сохраняет исходный порядок равных элементов.
+  </p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var button = document.getElementById('random-fill');
+    if (!button) return;
+    var area = document.getElementById(button.getAttribute('data-target'));
+    if (!area) return;
+    var count = parseInt(button.getAttribute('data-count'), 10) || 50;
+    button.hidden = false;
+    button.addEventListener('click', function () {
+      var numbers = [];
+      for (var i = 0; i < count; i++) {
+        numbers.push(Math.floor(Math.random() * 1999) - 999);
+      }
+      area.value = numbers.join(', ');
+      area.focus();
+    });
+  })();
+</script>
+{% endblock %}
